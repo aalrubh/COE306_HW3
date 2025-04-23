@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
 
 //Defining the PI constant, had issues where M_PI was not defined and produced errors
@@ -8,27 +7,15 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#include <unistd.h>
-
-void loadFile(float* filter);
-void generateSineWave(float* signal);
-void writeCSV(float* data);
-void applyFIR(float* signal, float* filter, float* output);
-
-/*
-    The parameters for the filter
-*/
-char* inputFile = "filter.bin";
-char* outputFile = "output.csv";
-
-float waveFrequency = 0.1;
-float waveAmplitude = 1.0;
-float sampleRate = 1.0;
-
-int size = 2000;
+void loadFile(const char* filename, float* filter, int size);
+void generateSineWave(float* signal, int size, float waveFrequency, float waveAmplitude, float sampleRate);
+void writeCSV(const char* filename, float* data, int size);
+void applyFIR(float* signal, float* filter, float* output, int size);
 
 int main() {
     //Allocating memory for filter, signal, and output
+    unsigned int size = 2000;
+
     float* filter = (float*)malloc(size * sizeof(float));
     float* signal = (float*)malloc(size * sizeof(float));
     float* output = (float*)malloc(size * sizeof(float));
@@ -40,26 +27,57 @@ int main() {
     }
 
     //Loading the coefficients from the filter file
-    loadFile(filter);
+    loadFile("filter.bin", filter, size);
 
-    //Generating a sine wave signal
-    generateSineWave(signal);
+    // Loop over frequencies and find the maximum amplitude of the output
+    float waveAmplitude = 1.0;
+    float sampleRate = 1.0;
 
-    //Applying the FIR filter to the signal
-    applyFIR(signal, filter, output);
+    float startFrequency = 1e-3;
+    float frequencyStep = 1e-3;
+    float endFrequency = 0.5;
 
-    //Writing the output to a CSV file
-    writeCSV(output);
+    int numFrequencies = (int)((endFrequency - startFrequency) / frequencyStep) + 1;
 
-    //printing for debugging purposes
-    for (int i = 0; i < 10; i++) {
-        printf("y[%d] = %f\n", i, output[i]);
+    //Allocating memory for the output in dB and frequency array
+    float* outputDB = (float*)malloc(numFrequencies * sizeof(float));
+    float* frequencies = (float*)malloc(numFrequencies * sizeof(float));
+
+    int freqIndex = 0;
+    for (float freq = startFrequency; freq <= endFrequency; freq += frequencyStep) {
+        //Generate a sine wave signal for the current frequency
+        generateSineWave(signal, size, freq, waveAmplitude, sampleRate);
+
+        //Apply the FIR filter to the signal
+        applyFIR(signal, filter, output, size);
+
+        //Find the maximum amplitude of the output
+        float maxAmplitude = 0.0;
+        for (int i = 0; i < size; i++) {
+            if (fabs(output[i]) > maxAmplitude) {
+                maxAmplitude = fabs(output[i]);
+            }
+        }
+
+        //Calculate amplitude in dB and store it in the output array
+        outputDB[freqIndex] = 20 * log10(maxAmplitude);
+
+        //Store the frequency value in the frequencies array
+        frequencies[freqIndex] = freq;
+
+        freqIndex++;
     }
+
+    //Writing the output to CSV files
+    writeCSV("fir_amplitude.csv", outputDB, numFrequencies);
+    writeCSV("fir_frequency.csv", frequencies, numFrequencies);
 
     //Freeing the allocated memory
     free(filter);
     free(signal);
     free(output);
+    free(outputDB);
+    free(frequencies);
 
     return 0;
 }
@@ -67,9 +85,9 @@ int main() {
 /*
     This function will be used to load the contents of filter binary file into an array.
 */
-void loadFile(float* filter) {
+void loadFile(const char* filename, float* filter, int size) {
     //Creating a file pointer
-    FILE *file = fopen(inputFile, "rb");
+    FILE* file = fopen(filename, "rb");
 
     //Error handling for file opening
     if (!file) {
@@ -91,9 +109,9 @@ void loadFile(float* filter) {
 /*
     This function will be used to write the output values into a CSV file to use for plotting.
 */
-void writeCSV(float* data) {
+void writeCSV(const char* filename, float* data, int size) {
     //Creating a file pointer
-    FILE *file = fopen(outputFile, "w");
+    FILE* file = fopen(filename, "w");
 
     //Error handling for file opening
     if (!file) {
@@ -113,7 +131,7 @@ void writeCSV(float* data) {
 /*
     This function will be used to generate a sine wave signal at a specific sampling rate.
 */
-void generateSineWave(float* signal) {
+void generateSineWave(float* signal, int size, float waveFrequency, float waveAmplitude, float sampleRate) {
     for (int i = 0; i < size; i++) {
         signal[i] = waveAmplitude * sin(2 * M_PI * waveFrequency * i / sampleRate);
     }
@@ -122,7 +140,7 @@ void generateSineWave(float* signal) {
 /*
     This function will be used to apply the FIR filter to the signal.
 */
-void applyFIR(float* signal, float* filter, float* output) {
+void applyFIR(float* signal, float* filter, float* output, int size) {
     //For each sample in the signal
     for (int n = 0; n < size; n++) {
         //Resetting the output
