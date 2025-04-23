@@ -1,10 +1,14 @@
 #   Loading External Libraries
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+
+#   Set the working directory to the script's directory
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 #   The file names that would be used
-amplitude_file = 'fir_amplitude.csv'
-frequency_file = 'fir_frequency.csv'
+amplitude_file = 'iir_amplitude.csv'
+frequency_file = 'iir_frequency.csv'
 
 #   The threshold value
 threshold = -3
