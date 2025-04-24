@@ -3,9 +3,12 @@
     Therefore, this is the frequency that will be used to build the IIR filter.
 */
 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
