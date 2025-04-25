@@ -12,7 +12,7 @@ def configure_plot():
     plt.ylabel('Amplitude')
     plt.title('IIR Filtered Signal Plot')
     plt.grid()
-    plt.ylim(-6, 6)
+    #plt.ylim(-6, 6)
 
 def main():
     #   Loading the signal data
