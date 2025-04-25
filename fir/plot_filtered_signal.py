@@ -10,7 +10,7 @@ def configure_plot():
     plt.xscale('linear')
     plt.xlabel('Time')
     plt.ylabel('Amplitude')
-    plt.title('Signal Plot')
+    plt.title('FIR Filtered Signal Plot')
     plt.grid()
     plt.ylim(-6, 6)
 
