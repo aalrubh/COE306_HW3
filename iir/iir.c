@@ -1,10 +1,3 @@
-/* 
-    As per FIR, the bandwidth frequency is 0.0030 Hz
-    Therefore, this is the frequency that will be used to build the IIR filter.
-*/
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -19,17 +12,16 @@ void writeCSV(const char* filename, float* data, int size);
 void generateSineWave(float* signal, int size, float waveFrequency, float waveAmplitude, float sampleRate);
 void applyIIR(float* signal, float* output, float* capturedOutput, float b0, float b1, float a1, int size);
 
-float bandwidthFrequency = 0.0030;
+float bandwidthFrequency = 0.0026;
 
 int main() {
-    //Filter Parameters
+    //Filter parameters
     float radialFrequency = 2 * M_PI * bandwidthFrequency;
+    float b0 = radialFrequency / (2 + radialFrequency);
+    float b1 = radialFrequency / (2 + radialFrequency);
+    float a1 = (radialFrequency - 1) / (radialFrequency + 2);
 
-    float b0 = radialFrequency/(2+radialFrequency);
-    float b1 = radialFrequency/(2+radialFrequency);
-    float a1 = (radialFrequency-1)/(radialFrequency+2);
-
-    //Allocating memory for filter, signal, and output
+    //Signal and filter settings
     unsigned int size = 2000;
     float waveAmplitude = 1.0;
     float sampleRate = 1.0;
@@ -40,30 +32,24 @@ int main() {
 
     int numFrequencies = (int)((endFrequency - startFrequency) / frequencyStep) + 1;
 
-    //Allocating memory for the signal, and output
+    // Allocate memory
     float* signal = (float*)malloc(size * sizeof(float));
     float* output = (float*)malloc(size * sizeof(float));
     float* capturedOutput = (float*)malloc(size * sizeof(float));
-
-    //Allocating memory for the output in dB and frequency array
     float* outputDB = (float*)malloc(numFrequencies * sizeof(float));
     float* frequencies = (float*)malloc(numFrequencies * sizeof(float));
 
-    //Error handling for memory allocation
-    if (!signal || !output || !outputDB || !frequencies) {
+    if (!signal || !output || !capturedOutput || !outputDB || !frequencies) {
         perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
 
+    // Frequency response calculation
     int freqIndex = 0;
     for (float freq = startFrequency; freq <= endFrequency; freq += frequencyStep) {
-        //Generate a sine wave signal for the current frequency
         generateSineWave(signal, size, freq, waveAmplitude, sampleRate);
-
-        //Apply the FIR filter to the signal
         applyIIR(signal, output, capturedOutput, b0, b1, a1, size);
 
-        //Find the maximum amplitude of the output
         float maxAmplitude = 0.0;
         for (int i = 0; i < size; i++) {
             if (fabs(output[i]) > maxAmplitude) {
@@ -71,72 +57,58 @@ int main() {
             }
         }
 
-        //Calculate amplitude in dB and store it in the output array
         outputDB[freqIndex] = 20 * log10(maxAmplitude);
-
-        //Store the frequency value in the frequencies array
         frequencies[freqIndex] = freq;
-
         freqIndex++;
     }
 
-    //Writing the output to CSV files
+    // Write results to CSV files
     writeCSV("output/iir_amplitude.csv", outputDB, numFrequencies);
     writeCSV("output/iir_frequency.csv", frequencies, numFrequencies);
 
-    //Freeing the allocated memory
+    // Free memory
     free(signal);
     free(output);
     free(outputDB);
     free(frequencies);
     free(capturedOutput);
 
+    // Process signal from file
     size = 49000;
-    output = (float*)malloc(size * sizeof(float));
     signal = (float*)malloc(size * sizeof(float));
+    output = (float*)malloc(size * sizeof(float));
     capturedOutput = (float*)malloc(size * sizeof(float));
 
-    //Error handling for memory allocation
-    if (!output || !signal || !capturedOutput) {
+    if (!signal || !output || !capturedOutput) {
         perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
 
     loadFile("signal.bin", signal, size);
-    
     applyIIR(signal, output, capturedOutput, b0, b1, a1, size);
-
     writeCSV("output/capturedOutput_iir.csv", capturedOutput, size);
 
-    free (output);
-    free (signal);
-    free (capturedOutput);
+    free(signal);
+    free(output);
+    free(capturedOutput);
 
     return 0;
 }
 
 void writeCSV(const char* filename, float* data, int size) {
-    //Creating a file pointer
     FILE* file = fopen(filename, "w");
-
-    //Error handling for file opening
     if (!file) {
         perror("Failed to open output file");
         exit(EXIT_FAILURE);
     }
 
-    //Writing contents to the file
     for (int i = 0; i < size; i++) {
         fprintf(file, "%f\n", data[i]);
     }
 
-    //Closing the file
     fclose(file);
 }
 
-/*
-    This function will be used to generate a sine wave signal at a specific sampling rate.
-*/
 void generateSineWave(float* signal, int size, float waveFrequency, float waveAmplitude, float sampleRate) {
     for (int i = 0; i < size; i++) {
         signal[i] = waveAmplitude * sin(2 * M_PI * waveFrequency * i / sampleRate);
@@ -144,25 +116,23 @@ void generateSineWave(float* signal, int size, float waveFrequency, float waveAm
 }
 
 void applyIIR(float* signal, float* output, float* capturedOutput, float b0, float b1, float a1, int size) {
-    // Initialize the first two output samples to zero
     output[0] = 0.0;
     output[1] = 0.0;
 
-    // Apply the IIR filter to the signal
     for (int i = 2; i < size; i++) {
         output[i] = b0 * signal[i] + b1 * signal[i - 1] - a1 * output[i - 1];
         capturedOutput[i] = output[i];
     }
 }
 
-void loadFile(const char* filename, float* filter, int size) {
+void loadFile(const char* filename, float* signal, int size) {
     FILE* file = fopen(filename, "rb");
     if (!file) {
         perror("Failed to open file");
         exit(EXIT_FAILURE);
     }
 
-    if (fread(filter, sizeof(float), size, file) != size) {
+    if (fread(signal, sizeof(float), size, file) != size) {
         perror("Error reading file");
         fclose(file);
         exit(EXIT_FAILURE);

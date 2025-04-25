@@ -7,8 +7,8 @@ import os
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 #   The file names that would be used
-amplitude_file = 'fir_amplitude.csv'
-frequency_file = 'fir_frequency.csv'
+amplitude_file = 'output/fir_amplitude.csv'
+frequency_file = 'output/fir_frequency.csv'
 
 #   The threshold value
 threshold = -3
