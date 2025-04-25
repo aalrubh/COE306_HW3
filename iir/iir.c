@@ -32,19 +32,20 @@ int main() {
 
     int numFrequencies = (int)((endFrequency - startFrequency) / frequencyStep) + 1;
 
-    // Allocate memory
+    //Allocate memory
     float* signal = (float*)malloc(size * sizeof(float));
     float* output = (float*)malloc(size * sizeof(float));
     float* capturedOutput = (float*)malloc(size * sizeof(float));
     float* outputDB = (float*)malloc(numFrequencies * sizeof(float));
     float* frequencies = (float*)malloc(numFrequencies * sizeof(float));
 
+    // Error handling for memory allocation
     if (!signal || !output || !capturedOutput || !outputDB || !frequencies) {
         perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
 
-    // Frequency response calculation
+    //Applying IIR filter to a range of frequencies
     int freqIndex = 0;
     for (float freq = startFrequency; freq <= endFrequency; freq += frequencyStep) {
         generateSineWave(signal, size, freq, waveAmplitude, sampleRate);
@@ -62,18 +63,18 @@ int main() {
         freqIndex++;
     }
 
-    // Write results to CSV files
+    //Write results to CSV files
     writeCSV("output/iir_amplitude.csv", outputDB, numFrequencies);
     writeCSV("output/iir_frequency.csv", frequencies, numFrequencies);
 
-    // Free memory
+    //Free memory
     free(signal);
     free(output);
     free(outputDB);
     free(frequencies);
     free(capturedOutput);
 
-    // Process signal from file
+    //Process signal from file
     size = 49000;
     signal = (float*)malloc(size * sizeof(float));
     output = (float*)malloc(size * sizeof(float));

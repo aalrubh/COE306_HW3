@@ -15,13 +15,11 @@ def configure_plot():
     plt.ylim(-6, 6)
 
 def main():
-    #   Load the signal data from the CSV file without a header
+    #   Loading the signal data
     amplitude = pd.read_csv(amplitude_file, header=None)[0]
-
-    #   Generate time values starting from 0 with a step of 1
     time = range(len(amplitude))
 
-    #   Plot the signal
+    #   Plotting the signal
     configure_plot()
     plt.plot(time, amplitude, label='Signal', color='blue')
     plt.show()

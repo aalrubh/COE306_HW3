@@ -15,7 +15,7 @@ void applyFIR(const float* signal, float* output, const float* filter, float* ca
 int main() {
     const unsigned int size = 2000;
 
-    // Allocate memory for filter, signal, and output
+    // Allocating memory
     float *filter = malloc(size * sizeof(float));
     float *signal = malloc(size * sizeof(float));
     float *output = malloc(size * sizeof(float));
@@ -27,10 +27,10 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Load filter coefficients
+    // Loading filter coefficients
     loadFile("filter.bin", filter, size);
 
-    // Frequency sweep parameters
+    // Signal Parameters
     const float waveAmplitude = 1.0;
     const float sampleRate = 1.0;
     const float startFrequency = 0.2e-3;
@@ -39,10 +39,10 @@ int main() {
 
     const int numFrequencies = (int)((endFrequency - startFrequency) / frequencyStep) + 1;
 
-    // Allocate memory for output in dB and frequency array
     float *outputDB = malloc(numFrequencies * sizeof(float));
     float *frequencies = malloc(numFrequencies * sizeof(float));
 
+    // Error handling for memory allocation
     if (!outputDB || !frequencies) {
         perror("Memory allocation failed");
         exit(EXIT_FAILURE);
@@ -71,18 +71,18 @@ int main() {
         freqIndex++;
     }
 
-    // Write results to CSV files
+    //Write results to CSV files
     writeCSV("output/fir_amplitude.csv", outputDB, numFrequencies);
     writeCSV("output/fir_frequency.csv", frequencies, numFrequencies);
 
-    // Free allocated memory
+    //Free allocated memory
     free(signal);
     free(output);
     free(outputDB);
     free(frequencies);
     free(capturedOutput);
 
-    // Reallocate memory for larger signal processing
+    //Reallocate memory for removing signal noise
     const unsigned int largeSize = 49000;
     signal = malloc(largeSize * sizeof(float));
     output = malloc(largeSize * sizeof(float));
@@ -93,17 +93,17 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Load filter and signal
+    //Loading signal
     loadFile("signal.bin", signal, largeSize);
 
-    // Apply FIR filter
+    //Apply FIR filter
     applyFIR(signal, output, filter, capturedOutput, largeSize);
 
-    // Write results to CSV files
+    //Write results to CSV files
     writeCSV("output/capturedOutput.csv", capturedOutput, largeSize);
     writeCSV("output/signal.csv", signal, largeSize);
 
-    // Free allocated memory
+    //Free allocated memory
     free(filter);
     free(output);
     free(signal);
