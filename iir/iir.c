@@ -14,9 +14,10 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+void loadFile(const char* filename, float* signal, int size);
 void writeCSV(const char* filename, float* data, int size);
 void generateSineWave(float* signal, int size, float waveFrequency, float waveAmplitude, float sampleRate);
-void applyIIR(float* signal, float* output, float b0, float b1, float a1, int size);
+void applyIIR(float* signal, float* output, float* capturedOutput, float b0, float b1, float a1, int size);
 
 float bandwidthFrequency = 0.0030;
 
@@ -33,15 +34,16 @@ int main() {
     float waveAmplitude = 1.0;
     float sampleRate = 1.0;
 
-    float startFrequency = 1e-3;
-    float frequencyStep = 1e-3;
-    float endFrequency = 0.5;
+    const float startFrequency = 0.2e-3;
+    const float frequencyStep = 1e-5;
+    const float endFrequency = 0.01;
 
     int numFrequencies = (int)((endFrequency - startFrequency) / frequencyStep) + 1;
 
     //Allocating memory for the signal, and output
     float* signal = (float*)malloc(size * sizeof(float));
     float* output = (float*)malloc(size * sizeof(float));
+    float* capturedOutput = (float*)malloc(size * sizeof(float));
 
     //Allocating memory for the output in dB and frequency array
     float* outputDB = (float*)malloc(numFrequencies * sizeof(float));
@@ -59,7 +61,7 @@ int main() {
         generateSineWave(signal, size, freq, waveAmplitude, sampleRate);
 
         //Apply the FIR filter to the signal
-        applyIIR(signal, output, b0, b1, a1, size);
+        applyIIR(signal, output, capturedOutput, b0, b1, a1, size);
 
         //Find the maximum amplitude of the output
         float maxAmplitude = 0.0;
@@ -79,14 +81,36 @@ int main() {
     }
 
     //Writing the output to CSV files
-    writeCSV("iir_amplitude.csv", outputDB, numFrequencies);
-    writeCSV("iir_frequency.csv", frequencies, numFrequencies);
+    writeCSV("output/iir_amplitude.csv", outputDB, numFrequencies);
+    writeCSV("output/iir_frequency.csv", frequencies, numFrequencies);
 
     //Freeing the allocated memory
     free(signal);
     free(output);
     free(outputDB);
     free(frequencies);
+    free(capturedOutput);
+
+    size = 49000;
+    output = (float*)malloc(size * sizeof(float));
+    signal = (float*)malloc(size * sizeof(float));
+    capturedOutput = (float*)malloc(size * sizeof(float));
+
+    //Error handling for memory allocation
+    if (!output || !signal || !capturedOutput) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    loadFile("signal.bin", signal, size);
+    
+    applyIIR(signal, output, capturedOutput, b0, b1, a1, size);
+
+    writeCSV("output/capturedOutput_iir.csv", capturedOutput, size);
+
+    free (output);
+    free (signal);
+    free (capturedOutput);
 
     return 0;
 }
@@ -119,7 +143,7 @@ void generateSineWave(float* signal, int size, float waveFrequency, float waveAm
     }
 }
 
-void applyIIR(float* signal, float* output, float b0, float b1, float a1, int size) {
+void applyIIR(float* signal, float* output, float* capturedOutput, float b0, float b1, float a1, int size) {
     // Initialize the first two output samples to zero
     output[0] = 0.0;
     output[1] = 0.0;
@@ -127,5 +151,22 @@ void applyIIR(float* signal, float* output, float b0, float b1, float a1, int si
     // Apply the IIR filter to the signal
     for (int i = 2; i < size; i++) {
         output[i] = b0 * signal[i] + b1 * signal[i - 1] - a1 * output[i - 1];
+        capturedOutput[i] = output[i];
     }
+}
+
+void loadFile(const char* filename, float* filter, int size) {
+    FILE* file = fopen(filename, "rb");
+    if (!file) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fread(filter, sizeof(float), size, file) != size) {
+        perror("Error reading file");
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(file);
 }

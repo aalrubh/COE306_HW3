@@ -1,6 +1,5 @@
 .vscode/
 build/
-*.csv
 
 # Prerequisites
 *.d
